@@ -1,4 +1,10 @@
 class App {
+  static DOMAIN_SERVER = 'http://localhost:3300';
+  static API_SERVER = 'http://localhost:3300';
+
+  static API_CUSTOMER = this.API_SERVER + '/customers';
+  static API_DEPOSIT = this.API_SERVER + '/deposits';
+
   static showDeleteConfirmDialog() {
     return Swal.fire({
       icon: 'warning',
@@ -31,12 +37,21 @@ class App {
 }
 
 class Customer {
-  constructor(id, fullName, email, phone, province) {
+  constructor(id, fullName, email, phone, balance, address) {
     this.id = id;
     this.fullName = fullName;
     this.email = email;
     this.phone = phone;
-    this.province = province;
+    this.balance = balance;
+    this.address = address;
+  }
+}
+
+class Deposit {
+  constructor(id, customerId, transactionAmount) {
+    this.id = id;
+    this.customerId = customerId;
+    this.transactionAmount = transactionAmount;
   }
 }
 
