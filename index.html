@@ -6,6 +6,7 @@
     <title>List of customers</title>
     <link rel="stylesheet" href="/assets/bootstrap/v5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="/assets/fontawesome/v5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/assets/sweetalert2/v11.7.12/sweetalert2.min.css">
     <link rel="stylesheet" href="/assets/css/style.css">
     <script src="/assets/bootstrap/v5.3.0/js/bootstrap.bundle.min.js"></script>
 </head>
@@ -161,52 +162,99 @@
         </div>
     </div>
 
-    <!-- <script src="/assets/js/jquery-3.6.0.min.js"></script>
-    <script src="/assets/js/jquery.number.js"></script> -->
+
+    <!-- Modal Deposit -->
+    <div class="modal fade" id="modalDeposit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5">Modal Deposit</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post">
+                        <div class="row mb-3">
+                            <div class="col-lg-6">
+                                <label class="fw-bold">Full Name</label>
+                                <input type="text" class="form-control" id="fullNameDep">
+                            </div>
+                            <div class="col-lg-6">
+                                <label class="fw-bold">Email</label>
+                                <input type="email" class="form-control" id="emailDep">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-lg-6">
+                                <label class="fw-bold">Current Balance</label>
+                                <input type="tel" class="form-control" id="balanceDep">
+                            </div>
+                            <div class="col-lg-6">
+                                <label class="fw-bold">Transaction Amount</label>
+                                <input type="text" class="form-control" id="transactionAmountDep">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-success" id="btnDeposit">
+                        <i class="fas fa-plus"></i>
+                        Deposit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/js/jquery-3.6.0.min.js"></script>
+    <!-- <script src="/assets/js/jquery.number.js"></script> -->
+    <script src="/assets/sweetalert2/v11.7.12/sweetalert2.all.min.js"></script>
     <script src="/assets/js/app.js"></script>
 
     <script>
 
         let maxId = 1;
         let customerId = 0;
+        let customer = {};
 
-        const customers = [
-            {
-                id: maxId++,
-                fullName: 'NVA',
-                email: 'nva@co.cc',
-                phone: '2345',
-                address: '28 Nguyễn Tri Phương',
-                balance: 0,
-                deleted: 0
-            },
-            {
-                id: maxId++,
-                fullName: 'NVB',
-                email: 'nvb@co.cc',
-                phone: '3456',
-                address: '29 Nguyễn Tri Phương',
-                balance: 0,
-                deleted: 0
-            }
-        ]
+        // const customers = [
+        //     {
+        //         id: maxId++,
+        //         fullName: 'NVA',
+        //         email: 'nva@co.cc',
+        //         phone: '2345',
+        //         address: '28 Nguyễn Tri Phương',
+        //         balance: 0,
+        //         deleted: 0
+        //     },
+        //     {
+        //         id: maxId++,
+        //         fullName: 'NVB',
+        //         email: 'nvb@co.cc',
+        //         phone: '3456',
+        //         address: '29 Nguyễn Tri Phương',
+        //         balance: 0,
+        //         deleted: 0
+        //     }
+        // ]
 
         function renderCustomer(obj) {
             return `
-                <tr>
+                <tr id="tr_${obj.id}">
                     <td class="text-center">${obj.id}</td>
                     <td>${obj.fullName}</td>
                     <td class="text-center">${obj.email}</td>
                     <td class="text-center">${obj.phone}</td>
                     <td>${obj.address}</td>
-                    <td class="text-end num-space">Action</td>
+                    <td class="text-end num-space">${obj.balance}</td>
                     <td>
                         <button class="btn btn-outline-secondary edit" data-id="${obj.id}">
                             <i class="fas fa-pencil-alt"></i>
                         </button>
                     </td>
                     <td>
-                        <button class="btn btn-outline-success">
+                        <button class="btn btn-outline-success deposit" data-id="${obj.id}">
                             <i class="fas fa-plus"></i>
                         </button>
                     </td>
@@ -220,41 +268,77 @@
         }
 
         function getAllCustomers() {
-            const tbCustomerBody = document.querySelector('#tbCustomer tbody')
+            const tbCustomerBody = $('#tbCustomer tbody')
 
-            tbCustomerBody.innerHTML = '';
+            tbCustomerBody.empty();
 
-            customers.forEach(item => {
-                const str = renderCustomer(item);
-                tbCustomerBody.innerHTML += str;
-            });
+            $.ajax({
+                type: 'GET',
+                url: 'http://localhost:3300/customers?deleted=0'
+            })
+                .done((data) => {
+                    data.forEach(item => {
+                        const str = renderCustomer(item);
+                        tbCustomerBody.prepend(str);
+
+                        handleAddEventShowModalUpdate();
+                        handleAddEventShowModalDeposit();
+                    });
+                })
+                .fail((error) => {
+                    console.log(error);
+                })
         }
 
         getAllCustomers();
 
-        const btnCreate = document.getElementById('btnCreate');
-        btnCreate.addEventListener('click', function () {
-            const fullName = document.getElementById('fullNameCre').value;
-            const email = document.getElementById('emailCre').value;
-            const phone = document.getElementById('phoneCre').value;
-            const address = document.getElementById('addressCre').value;
+        const btnCreate = $('#btnCreate');
+        btnCreate.on('click', function () {
+            const fullName = $('#fullNameCre').val();
+            const email = $('#emailCre').val();
+            const phone = $('#phoneCre').val();
+            const address = $('#addressCre').val();
+            const balance = 0;
+            const deleted = 0;
 
             const obj = {
-                id: maxId++,
                 fullName,
                 email,
                 phone,
-                address
+                address,
+                balance,
+                deleted
             }
 
-            customers.push(obj);
+            $.ajax({
+                headers: {
+                    'accept': 'application/json',
+                    'content-type': 'application/json'
+                },
+                type: 'POST',
+                url: 'http://localhost:3300/customers',
+                data: JSON.stringify(obj)
+            })
+                .done((data) => {
+                    const str = renderCustomer(data);
+                    const tbCustomerBody = $('#tbCustomer tbody');
+                    tbCustomerBody.prepend(str);
 
-            getAllCustomers();
+                    $('#modalCreate').modal('hide');
+                })
+                .fail((error) => {
+                    console.log(error);
+                })
+
+            // getAllCustomers();
 
         })
 
         function getCustomerById(id) {
-            return customers.find(item => item.id == id);
+            return $.ajax({
+                type: 'get',
+                url: 'http://localhost:3300/customers/' + id,
+            });
         }
 
         function findCustomerIndexById(id) {
@@ -270,52 +354,151 @@
         }
 
         function handleAddEventShowModalUpdate() {
-            let btnEdit = document.querySelectorAll('.edit');
+            let btnEdit = $('.edit');
+            btnEdit.off('click');
+            btnEdit.on('click', function () {
+                customerId = $(this).data('id');
 
-            btnEdit.forEach(item => {
-                item.addEventListener('click', function () {
-                    customerId = +item.getAttribute('data-id');
-                    const obj = getCustomerById(customerId);
+                const modalUpdate = $('#modalUpdate');
 
-                    document.getElementById('fullNameUp').value = obj.fullName;
-                    document.getElementById('emailUp').value = obj.email;
-                    document.getElementById('phoneUp').value = obj.phone;
-                    document.getElementById('addressUp').value = obj.address;
+                getCustomerById(customerId).then((data) => {
+                    $('#fullNameUp').val(data.fullName);
+                    $('#emailUp').val(data.email);
+                    $('#phoneUp').val(data.phone);
+                    $('#addressUp').val(data.address);
 
-                    const modalUpdate = new bootstrap.Modal(document.getElementById('modalUpdate'), {
-                        keyboard: false
-                    })
-
-                    modalUpdate.show()
+                    modalUpdate.modal('show');
                 })
+                    .catch((error) => {
+                        console.log(error);
+                    });
             })
         }
 
-        handleAddEventShowModalUpdate();
+        function handleAddEventShowModalDeposit() {
+            let btnDeposit = $('.deposit');
+            btnDeposit.on('click', function () {
+                customerId = $(this).data('id');
+
+                const modalDeposit = $('#modalDeposit');
+
+                getCustomerById(customerId).then((data) => {
+                    customer = data;
+                    $('#fullNameDep').val(customer.fullName);
+                    $('#emailDep').val(customer.email);
+                    $('#balanceDep').val(customer.balance);
+
+                    modalDeposit.modal('show');
+                })
+                    .catch((error) => {
+                        console.log(error);
+                    });
+            })
+        }
 
 
-        const btnUpdate = document.getElementById('btnUpdate');
-        btnUpdate.addEventListener('click', function () {
-            const fullName = document.getElementById('fullNameUp').value;
-            const email = document.getElementById('emailUp').value;
-            const phone = document.getElementById('phoneUp').value;
-            const address = document.getElementById('addressUp').value;
+        const btnUpdate = $('#btnUpdate');
+        btnUpdate.on('click', () => {
+            const fullName = $('#fullNameUp').val();
+            const email = $('#emailUp').val();
+            const phone = $('#phoneUp').val();
+            const address = $('#addressUp').val();
 
             const obj = {
-                id: customerId,
                 fullName,
                 email,
                 phone,
                 address
             }
 
-            const index = findCustomerIndexById(customerId);
+            update(obj);
+        })
 
-            customers[index] = obj;
+        function update(obj) {
+            $.ajax({
+                headers: {
+                    'accept': 'application/json',
+                    'content-type': 'application/json'
+                },
+                type: 'PATCH',
+                url: 'http://localhost:3300/customers/' + customerId,
+                data: JSON.stringify(obj)
+            })
+                .done((data) => {
+                    const str = renderCustomer(data);
 
-            getAllCustomers();
+                    const currentRow = $('#tr_' + customerId);
+                    currentRow.replaceWith(str);
 
-            handleAddEventShowModalUpdate();
+                    $('#modalUpdate').modal('hide');
+                })
+                .fail((error) => {
+                    console.log(error);
+                })
+        }
+
+
+        const btnDeposit = $('#btnDeposit');
+        btnDeposit.on('click', () => {
+
+            const currentBalance = customer.balance;
+            const transactionAmount = +$('#transactionAmountDep').val();
+            const newBalance = currentBalance + transactionAmount;
+            customer.balance = newBalance;
+
+            $.ajax({
+                headers: {
+                    'accept': 'application/json',
+                    'content-type': 'application/json'
+                },
+                type: 'PATCH',
+                url: 'http://localhost:3300/customers/' + customerId,
+                data: JSON.stringify(customer)
+            })
+                .done((data) => {
+                    const str = renderCustomer(data);
+
+                    const currentRow = $('#tr_' + customerId);
+                    currentRow.replaceWith(str);
+
+                    handleAddEventShowModalUpdate();
+                    handleAddEventShowModalDeposit();
+
+                    $('#modalDeposit').modal('hide');
+
+                    Swal.fire({
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Nạp tiền thành công',
+                        showConfirmButton: false,
+                        timer: 1500
+                    })
+                })
+                .fail((error) => {
+                    console.log(error);
+                })
+
+
+            const obj = {
+                customerId,
+                transactionAmount
+            }
+
+            $.ajax({
+                headers: {
+                    'accept': 'application/json',
+                    'content-type': 'application/json'
+                },
+                type: 'POST',
+                url: 'http://localhost:3300/deposits',
+                data: JSON.stringify(obj)
+            })
+                .done((data) => {
+
+                })
+                .fail((error) => {
+                    console.log(error);
+                })
         })
 
     </script>
